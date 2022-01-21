@@ -1,12 +1,9 @@
-// Copyright 2013 The Flutter Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
 
-// ignore_for_file: public_member_api_docs
 
 import 'dart:async';
 import 'dart:io';
 
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -40,11 +37,13 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<XFile>? _imageFileList;
-
+  String? downUrl;
   set _imageFile(XFile? value) {
     _imageFileList = value == null ? null : [value];
   }
- File? files;
+
+  UploadTask? task;
+  File? files;
   dynamic _pickImageError;
 
   //VIDEO AREA...............................................................
@@ -93,7 +92,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final XFile? file = await _picker.pickVideo(
           source: source, maxDuration: const Duration(seconds: 10));
       setState(() {
-        files=File(file!.path);
+        files = File(file!.path);
       });
       await _playVideo(file);
     } else if (isMultiImage) {
@@ -126,9 +125,8 @@ class _MyHomePageState extends State<MyHomePage> {
           );
           setState(() {
             _imageFile = pickedFile;
-            files=File(pickedFile!.path);
+            files = File(pickedFile!.path);
           });
-
         } catch (e) {
           setState(() {
             _pickImageError = e;
@@ -240,12 +238,18 @@ class _MyHomePageState extends State<MyHomePage> {
   void _removeImage() {
     setState(() {
       _imageFileList = null;
+      files=null;
+      task=null;
+      downUrl=null;
     });
   }
 
   void _removeVideo() {
     setState(() {
       _controller = null;
+      files=null;
+      task=null;
+      downUrl=null;
     });
   }
 
@@ -279,10 +283,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final fileName = files != null ? basename(files!.path) : 'No File Selected';
     return Scaffold(
-      backgroundColor: Colors.yellowAccent,
+backgroundColor: Colors.orangeAccent[100],
       appBar: AppBar(
-        title: Text(widget.title!),
+        backgroundColor: Colors.indigoAccent,
+        centerTitle: true,
+        title: Text('Media Storage'),
       ),
       body: SingleChildScrollView(
         child: Center(
@@ -320,8 +327,17 @@ class _MyHomePageState extends State<MyHomePage> {
                   )
                 : _handlePreview(context: context),
             Container(
+              margin: EdgeInsets.all(10.0),
+              child: Text(
+                fileName,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,),textAlign: TextAlign.start
+                ,
+              ),
+            ),
+            Container(
               margin: EdgeInsets.all(8.0),
               child: Card(
+                color: Colors.deepOrangeAccent[100],
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15)),
                 child: Container(
@@ -430,7 +446,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
+                              children: const [
                                 Icon(Icons.videocam),
                                 Text('Record Video'),
                               ],
@@ -456,7 +472,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                         ],
                       ),
-                      Text(
+                      const Text(
                         'Delete',
                         style: TextStyle(
                           fontSize: 20,
@@ -502,7 +518,7 @@ class _MyHomePageState extends State<MyHomePage> {
                               ),
                             ),
                             onPressed: () {
-UploadFile();
+                              UploadFile();
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -520,6 +536,19 @@ UploadFile();
                             ),
                           ),
                         ],
+                      ),
+                      task != null ? buildUploadStatus(task!) : Container(),
+                      Container(
+                        margin: EdgeInsets.all(8),
+                        child: Text(
+                          'Download Link :$downUrl',
+                          textAlign: TextAlign.start,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.cyan
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -609,13 +638,41 @@ UploadFile();
     );
   }
 
-  Future UploadFile () async{
-if(files==null)
-  return;
-final fileName = basename(files!.path);
-final destination = 'files/$fileName';
-FirebaseApi.uploadFile(destination,files!);
+  Future UploadFile() async {
+    if (files == null) return;
+    final fileName = basename(files!.path);
+    final destination = 'files/$fileName';
+    task = FirebaseApi.uploadFile(destination, files!);
+    setState(() {});
+
+    if (task == null) return;
+
+    final snapshot = await task!.whenComplete(() {});
+    final urlDownload = await snapshot.ref.getDownloadURL();
+    setState(() {
+      downUrl = urlDownload;
+    });
+    print('Download-Link: $urlDownload');
   }
+
+  Widget buildUploadStatus(UploadTask task) => StreamBuilder<TaskSnapshot>(
+        stream: task.snapshotEvents,
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            final snap = snapshot.data!;
+            final progress = snap.bytesTransferred / snap.totalBytes;
+            final percentage = (progress * 100).toStringAsFixed(2);
+
+            return Text(
+              'Progress- $percentage %',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            );
+          } else {
+            return Container();
+          }
+        },
+      );
+
   Text? _getRetrieveErrorWidget() {
     if (_retrieveDataError != null) {
       final Text result = Text(_retrieveDataError!);
