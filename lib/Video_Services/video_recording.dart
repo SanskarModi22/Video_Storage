@@ -10,7 +10,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart';
 import 'package:video_player/video_player.dart';
+
+import '../Firebase Services/storage.dart';
 
 void main() {
   runApp(MyApp());
@@ -41,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   set _imageFile(XFile? value) {
     _imageFileList = value == null ? null : [value];
   }
-
+ File? files;
   dynamic _pickImageError;
 
   //VIDEO AREA...............................................................
@@ -89,6 +92,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (isVideo) {
       final XFile? file = await _picker.pickVideo(
           source: source, maxDuration: const Duration(seconds: 10));
+      setState(() {
+        files=File(file!.path);
+      });
       await _playVideo(file);
     } else if (isMultiImage) {
       await _displayPickImageDialog(context!,
@@ -120,7 +126,9 @@ class _MyHomePageState extends State<MyHomePage> {
           );
           setState(() {
             _imageFile = pickedFile;
+            files=File(pickedFile!.path);
           });
+
         } catch (e) {
           setState(() {
             _pickImageError = e;
@@ -176,22 +184,21 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _previewImages() {
+  Widget _previewImages({BuildContext? context}) {
     final Text? retrieveError = _getRetrieveErrorWidget();
     if (retrieveError != null) {
       return retrieveError;
     }
     if (_imageFileList != null) {
       return Semantics(
-          child:SizedBox(
-            width:MediaQuery.of(context).size.width ,
+          child: SizedBox(
+            width: MediaQuery.of(context!).size.width,
             height: double.parse(maxHeightController.text),
             child: Center(
               child: ListView.builder(
                 reverse: true,
                 shrinkWrap: true,
                 scrollDirection: Axis.horizontal,
-
                 key: UniqueKey(),
                 itemBuilder: (context, index) {
                   // Why network for web?
@@ -221,34 +228,32 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   } //IMAGE SECTION
 
-  Widget _handlePreview() {
+  Widget _handlePreview({BuildContext? context}) {
     //VIDEO PART
     if (isVideo) {
       return _previewVideo();
     } else {
-      return _previewImages();
+      return _previewImages(context: context);
     }
   }
-  void _removeImage()
-  {
-    setState(() {
-      _imageFileList=null;
-    });
 
-  }
-  void _removeVideo()
-  {
+  void _removeImage() {
     setState(() {
-      _controller=null;
+      _imageFileList = null;
     });
-
   }
-  void _removeMedia()
-  {
-    if(isVideo)
+
+  void _removeVideo() {
+    setState(() {
+      _controller = null;
+    });
+  }
+
+  void _removeMedia() {
+    if (isVideo)
       _removeVideo();
-    else _removeImage();
-
+    else
+      _removeImage();
   }
 
   Future<void> retrieveLostData() async {
@@ -275,13 +280,14 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.yellowAccent,
       appBar: AppBar(
         title: Text(widget.title!),
       ),
       body: SingleChildScrollView(
         child: Center(
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             !kIsWeb && defaultTargetPlatform == TargetPlatform.android
                 ? FutureBuilder<void>(
@@ -296,7 +302,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             textAlign: TextAlign.center,
                           );
                         case ConnectionState.done:
-                          return _handlePreview();
+                          return _handlePreview(context: context);
                         default:
                           if (snapshot.hasError) {
                             return Text(
@@ -312,7 +318,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       }
                     },
                   )
-                : _handlePreview(),
+                : _handlePreview(context: context),
             Container(
               margin: EdgeInsets.all(8.0),
               child: Card(
@@ -325,10 +331,13 @@ class _MyHomePageState extends State<MyHomePage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text('Image Section', style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),),
+                      Text(
+                        'Image Section',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
@@ -447,10 +456,13 @@ class _MyHomePageState extends State<MyHomePage> {
                           ),
                         ],
                       ),
-                      Text('Delete', style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),),
+                      Text(
+                        'Delete',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
@@ -471,7 +483,42 @@ class _MyHomePageState extends State<MyHomePage> {
                               ],
                             ),
                           ),
-
+                        ],
+                      ),
+                      Text(
+                        'Upload To Firestore',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          ElevatedButton(
+                            style: ButtonStyle(
+                              backgroundColor: MaterialStateProperty.all(
+                                Colors.pinkAccent,
+                              ),
+                            ),
+                            onPressed: () {
+UploadFile();
+                            },
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  child: Image.asset(
+                                    "assets/firebase-logo.png",
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Text(' Upload To Firebase'),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -562,6 +609,13 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Future UploadFile () async{
+if(files==null)
+  return;
+final fileName = basename(files!.path);
+final destination = 'files/$fileName';
+FirebaseApi.uploadFile(destination,files!);
+  }
   Text? _getRetrieveErrorWidget() {
     if (_retrieveDataError != null) {
       final Text result = Text(_retrieveDataError!);
