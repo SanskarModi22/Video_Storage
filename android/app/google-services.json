@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "223758685423",
+    "project_id": "video-storage-2da19",
+    "storage_bucket": "video-storage-2da19.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:223758685423:android:0e9ea9e960bf45ac38f71a",
+        "android_client_info": {
+          "package_name": "com.example.video_storage"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "223758685423-grt6vopddijar32d5t7co1jasvl6ei5e.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBi3hJM73IT4mNMzxl_jgnktk7Xnnb4g24"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "223758685423-grt6vopddijar32d5t7co1jasvl6ei5e.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
