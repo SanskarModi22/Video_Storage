@@ -1,15 +1,11 @@
-
-
 import 'dart:async';
 import 'dart:io';
-
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart';
 import 'package:video_player/video_player.dart';
-
 import '../Firebase Services/storage.dart';
 
 void main() {
@@ -27,7 +23,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, this.title}) : super(key: key);
+  const MyHomePage({Key? key, this.title}) : super(key: key);
 
   final String? title;
 
@@ -42,22 +38,34 @@ class _MyHomePageState extends State<MyHomePage> {
     _imageFileList = value == null ? null : [value];
   }
 
-  UploadTask? task;
-  File? files;
+  UploadTask? task; //Used to display the task of uploading
+
+  File? files; //The files to be uploaded in File format
+
   dynamic _pickImageError;
+  /**
+  * * Error while picking of images or videos
+   */
 
-  //VIDEO AREA...............................................................
-  bool isVideo = false;
+  bool isVideo = false; // Whether the selected item is video or not
 
+//Video Playing Importnat Features....................
   VideoPlayerController? _controller;
   VideoPlayerController? _toBeDisposed;
-  String? _retrieveDataError;
+//...................................................
+
+  String?
+      _retrieveDataError; //When an error has occurred while retrieving of data
 
   final ImagePicker _picker = ImagePicker();
+
+  //Size Controls....................................................
   final TextEditingController maxWidthController = TextEditingController();
   final TextEditingController maxHeightController = TextEditingController();
   final TextEditingController qualityController = TextEditingController();
-//.............................................................
+//......................................................................
+
+//Function to play the video
   Future<void> _playVideo(XFile? file) async {
     //Used for playing the video
     if (file != null && mounted) {
@@ -69,12 +77,7 @@ class _MyHomePageState extends State<MyHomePage> {
         controller = VideoPlayerController.file(File(file.path));
       }
       _controller = controller;
-      // In web, most browsers won't honor a programmatic call to .play
-      // if the video has a sound track (and is not muted).
-      // Mute the video so it auto-plays in web!
-      // This is not needed if the call to .play is the result of user
-      // interaction (clicking on a "play" button, for example).
-      final double volume = kIsWeb ? 0.0 : 1.0;
+      const double volume = kIsWeb ? 0.0 : 1.0;
       await controller.setVolume(volume);
       await controller.initialize();
       await controller.setLooping(true);
@@ -83,11 +86,16 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+//Operations taking place when the buttons are pressed
   void _onImageButtonPressed(ImageSource source,
       {BuildContext? context, bool isMultiImage = false}) async {
     if (_controller != null) {
       await _controller!.setVolume(0.0);
     }
+    /**
+     * ? When the media is video
+     */
+
     if (isVideo) {
       final XFile? file = await _picker.pickVideo(
           source: source, maxDuration: const Duration(seconds: 10));
@@ -95,6 +103,9 @@ class _MyHomePageState extends State<MyHomePage> {
         files = File(file!.path);
       });
       await _playVideo(file);
+      /**
+     * ? When the media is multiple images
+     */
     } else if (isMultiImage) {
       await _displayPickImageDialog(context!,
           (double? maxWidth, double? maxHeight, int? quality) async {
@@ -114,6 +125,9 @@ class _MyHomePageState extends State<MyHomePage> {
         }
       });
     } else {
+      /**
+     * ? When the media is Single Image
+     */
       await _displayPickImageDialog(context!,
           (double? maxWidth, double? maxHeight, int? quality) async {
         try {
@@ -182,6 +196,9 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  /**
+     * ? Used for previewing of images
+     */
   Widget _previewImages({BuildContext? context}) {
     final Text? retrieveError = _getRetrieveErrorWidget();
     if (retrieveError != null) {
@@ -199,8 +216,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 scrollDirection: Axis.horizontal,
                 key: UniqueKey(),
                 itemBuilder: (context, index) {
-                  // Why network for web?
-                  // See https://pub.dev/packages/image_picker#getting-ready-for-the-web-platform
                   return Semantics(
                     label: 'image_picker_example_picked_image',
                     child: kIsWeb
@@ -226,6 +241,9 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   } //IMAGE SECTION
 
+/**
+     * ? Handling of previewing of media
+     */
   Widget _handlePreview({BuildContext? context}) {
     //VIDEO PART
     if (isVideo) {
@@ -235,21 +253,24 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+/**
+     * ? Delete Media Section
+     */
   void _removeImage() {
     setState(() {
       _imageFileList = null;
-      files=null;
-      task=null;
-      downUrl=null;
+      files = null;
+      task = null;
+      downUrl = null;
     });
   }
 
   void _removeVideo() {
     setState(() {
       _controller = null;
-      files=null;
-      task=null;
-      downUrl=null;
+      files = null;
+      task = null;
+      downUrl = null;
     });
   }
 
@@ -259,6 +280,7 @@ class _MyHomePageState extends State<MyHomePage> {
     else
       _removeImage();
   }
+//...........................................
 
   Future<void> retrieveLostData() async {
     final LostDataResponse response = await _picker.retrieveLostData();
@@ -281,15 +303,16 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   } //VIDEO PART
 
+//.....................................................
   @override
   Widget build(BuildContext context) {
     final fileName = files != null ? basename(files!.path) : 'No File Selected';
     return Scaffold(
-backgroundColor: Colors.orangeAccent[100],
+      backgroundColor: Colors.orangeAccent[100],
       appBar: AppBar(
         backgroundColor: Colors.indigoAccent,
         centerTitle: true,
-        title: Text('Media Storage'),
+        title: const Text('Media Storage'),
       ),
       body: SingleChildScrollView(
         child: Center(
@@ -327,27 +350,30 @@ backgroundColor: Colors.orangeAccent[100],
                   )
                 : _handlePreview(context: context),
             Container(
-              margin: EdgeInsets.all(10.0),
+              margin: const EdgeInsets.all(10.0),
               child: Text(
                 fileName,
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500,),textAlign: TextAlign.start
-                ,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.start,
               ),
             ),
             Container(
-              margin: EdgeInsets.all(8.0),
+              margin: const EdgeInsets.all(8.0),
               child: Card(
                 color: Colors.deepOrangeAccent[100],
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15)),
                 child: Container(
-                  margin: EdgeInsets.all(8.0),
+                  margin: const EdgeInsets.all(8.0),
                   width: MediaQuery.of(context).size.width,
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
+                      const Text(
                         'Image Section',
                         style: TextStyle(
                           fontSize: 20,
@@ -370,7 +396,7 @@ backgroundColor: Colors.orangeAccent[100],
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
+                              children: const [
                                 Icon(Icons.photo),
                                 Text('Single Image'),
                               ],
@@ -392,7 +418,7 @@ backgroundColor: Colors.orangeAccent[100],
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
+                              children: const [
                                 Icon(Icons.photo_library),
                                 Text('Multiple Images'),
                               ],
@@ -416,7 +442,7 @@ backgroundColor: Colors.orangeAccent[100],
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
+                              children: const [
                                 Icon(Icons.camera_alt),
                                 Text('Capture Image'),
                               ],
@@ -424,7 +450,7 @@ backgroundColor: Colors.orangeAccent[100],
                           )
                         ],
                       ),
-                      Text(
+                      const Text(
                         'Video Section',
                         style: TextStyle(
                           fontSize: 20,
@@ -464,7 +490,7 @@ backgroundColor: Colors.orangeAccent[100],
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
+                              children: const [
                                 Icon(Icons.video_library),
                                 Text('Video from Gallery'),
                               ],
@@ -493,7 +519,7 @@ backgroundColor: Colors.orangeAccent[100],
                             },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: [
+                              children: const [
                                 Icon(Icons.delete),
                                 Text('Delete Media'),
                               ],
@@ -501,7 +527,7 @@ backgroundColor: Colors.orangeAccent[100],
                           ),
                         ],
                       ),
-                      Text(
+                      const Text(
                         'Upload To Firestore',
                         style: TextStyle(
                           fontSize: 20,
@@ -531,7 +557,7 @@ backgroundColor: Colors.orangeAccent[100],
                                     fit: BoxFit.cover,
                                   ),
                                 ),
-                                Text(' Upload To Firebase'),
+                                const Text(' Upload To Firebase'),
                               ],
                             ),
                           ),
@@ -539,15 +565,14 @@ backgroundColor: Colors.orangeAccent[100],
                       ),
                       task != null ? buildUploadStatus(task!) : Container(),
                       Container(
-                        margin: EdgeInsets.all(8),
+                        margin: const EdgeInsets.all(8),
                         child: Text(
                           'Download Link :$downUrl',
                           textAlign: TextAlign.start,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.cyan
-                          ),
+                          style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.cyan),
                         ),
                       ),
                     ],
@@ -558,86 +583,12 @@ backgroundColor: Colors.orangeAccent[100],
           ],
         )),
       ), //This is importanat
-      // floatingActionButton: Column(
-      //   mainAxisAlignment: MainAxisAlignment.end,
-      //   children: <Widget>[
-      //     //PHOTO AREA..........................................
-      //     Semantics(
-      //       label: 'image_picker_example_from_gallery',
-      //       child: FloatingActionButton(
-      //         onPressed: () {
-      //           isVideo = false;
-      //           _onImageButtonPressed(ImageSource.gallery, context: context);
-      //         },
-      //         heroTag: 'image0',
-      //         tooltip: 'Pick Image from gallery',
-      //         child: const Icon(Icons.photo),
-      //       ),
-      //     ), //Single image
-      //     Padding(
-      //       padding: const EdgeInsets.only(top: 16.0),
-      //       child: FloatingActionButton(
-      //         onPressed: () {
-      //           isVideo = false;
-      //           _onImageButtonPressed(
-      //             ImageSource.gallery,
-      //             context: context,
-      //             isMultiImage: true,
-      //           );
-      //         },
-      //         heroTag: 'image1',
-      //         tooltip: 'Pick Multiple Image from gallery',
-      //         child: const Icon(Icons.photo_library),
-      //       ),
-      //     ), //Multiple images
-      //     Padding(
-      //       padding: const EdgeInsets.only(top: 16.0),
-      //       child: FloatingActionButton(
-      //         onPressed: () {
-      //           isVideo = false;
-      //           _onImageButtonPressed(ImageSource.camera, context: context);
-      //         },
-      //         heroTag: 'image2',
-      //         tooltip: 'Take a Photo',
-      //         child: const Icon(Icons.camera_alt),
-      //       ),
-      //     ),
-      //     //Photo clicking
-      //     //.........................................................
-      //
-      //     //VIDEO AREA...................................................
-      //     Padding(
-      //       padding: const EdgeInsets.only(top: 16.0),
-      //       child: FloatingActionButton(
-      //         backgroundColor: Colors.red,
-      //         onPressed: () {
-      //           isVideo = true;
-      //           _onImageButtonPressed(ImageSource.gallery);
-      //         },
-      //         heroTag: 'video0',
-      //         tooltip: 'Pick Video from gallery',
-      //         child: const Icon(Icons.video_library),
-      //       ),
-      //     ),
-      //     Padding(
-      //       padding: const EdgeInsets.only(top: 16.0),
-      //       child: FloatingActionButton(
-      //         backgroundColor: Colors.red,
-      //         onPressed: () {
-      //           isVideo = true;
-      //           _onImageButtonPressed(ImageSource.camera);
-      //         },
-      //         heroTag: 'video1',
-      //         tooltip: 'Take a Video',
-      //         child: const Icon(Icons.videocam),
-      //       ),
-      //     ),
-      //     //.................................................
-      //   ],
-      // ),
     );
   }
 
+/**
+     * ? Uploading of media
+     */
   Future UploadFile() async {
     if (files == null) return;
     final fileName = basename(files!.path);
@@ -652,9 +603,11 @@ backgroundColor: Colors.orangeAccent[100],
     setState(() {
       downUrl = urlDownload;
     });
-    print('Download-Link: $urlDownload');
   }
 
+/**
+     * ? Uploading of progress
+     */
   Widget buildUploadStatus(UploadTask task) => StreamBuilder<TaskSnapshot>(
         stream: task.snapshotEvents,
         builder: (context, snapshot) {
@@ -665,7 +618,7 @@ backgroundColor: Colors.orangeAccent[100],
 
             return Text(
               'Progress- $percentage %',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             );
           } else {
             return Container();
@@ -688,26 +641,28 @@ backgroundColor: Colors.orangeAccent[100],
         context: context,
         builder: (context) {
           return AlertDialog(
-            title: Text('Add optional parameters'),
+            title: const Text('Add optional parameters'),
             content: Column(
               children: <Widget>[
                 TextField(
                   controller: maxWidthController,
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  decoration:
-                      InputDecoration(hintText: "Enter maxWidth if desired"),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                      hintText: "Enter maxWidth if desired"),
                 ),
                 TextField(
                   controller: maxHeightController,
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  decoration:
-                      InputDecoration(hintText: "Enter maxHeight if desired"),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                      hintText: "Enter maxHeight if desired"),
                 ),
                 TextField(
                   controller: qualityController,
                   keyboardType: TextInputType.number,
-                  decoration:
-                      InputDecoration(hintText: "Enter quality if desired"),
+                  decoration: const InputDecoration(
+                      hintText: "Enter quality if desired"),
                 ),
               ],
             ),
@@ -739,11 +694,11 @@ backgroundColor: Colors.orangeAccent[100],
   }
 }
 
-typedef void OnPickImageCallback(
+typedef OnPickImageCallback = void Function(
     double? maxWidth, double? maxHeight, int? quality);
 
 class AspectRatioVideo extends StatefulWidget {
-  AspectRatioVideo(this.controller);
+  const AspectRatioVideo(this.controller);
 
   final VideoPlayerController? controller;
 
